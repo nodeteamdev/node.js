@@ -4,6 +4,8 @@ Tool for identifying problematic patterns found in JavaScript code.
 
 - [ESLint](https://eslint.org/)
 - [Sonar](https://www.sonarlint.org/)
+- [JSCPD](https://github.com/kucherenko/jscpd/tree/master/packages/jscpd)
+- [Husky](https://www.npmjs.com/package/husky)
 
 ## ESLint
 
@@ -90,6 +92,46 @@ Would you like to install them now with npm?
 ❯ Y
 ```
 
+
+## JSCPD
+
+Find duplicated blocks.
+
+Copy/paste is a common technical debt on a lot of projects. The jscpd gives the ability to find duplicated blocks implemented on more than 150 programming languages and digital formats of documents. The jscpd tool implements Rabin-Karp algorithm for searching duplications.
+
+- [Getting started](https://github.com/kucherenko/jscpd/tree/master/packages/jscpd#getting-started)
+
 ## Sonar
 
-   in progress...
+SonarLint is an IDE extension that helps you detect and fix quality issues as you write code.
+Like a spell checker, SonarLint squiggles flaws so that they can be fixed before committing code.
+
+- [vscode](https://www.sonarlint.org/vscode/);
+- [intellij](https://www.sonarlint.org/intellij/)
+
+## Husky
+
+Husky can prevent bad git commit, git push and more 🐶 woof!
+
+### Installation
+
+```bash
+npm install husky --save-dev
+```
+
+### Setup
+
+Example:
+
+```package.json
+{
+  "husky": {
+    "hooks": {
+      // start eslint on commit
+      "pre-commit": "eslint api/**/*.js",
+      // start test on push
+      "pre-push": "npm run test",
+    }
+  }
+}
+```
