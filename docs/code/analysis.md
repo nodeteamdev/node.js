@@ -50,14 +50,14 @@ Which framework does your project use?
 Does your project use TypeScript? (y/N)
 
 ``` bash
-> Y
+❯ Y
 ```
 
 Where does your code run?
 
 ```bash
- ◯ Browser
-❯◉ Node
+  ◯ Browser
+❯ ◉ Node
 ```
 
 How would you like to define a style for your project?
@@ -87,7 +87,7 @@ What format do you want your config file to be in?
 Would you like to install them now with npm?
 
 ```bash
-> Y
+❯ Y
 ```
 
 ## Sonar
