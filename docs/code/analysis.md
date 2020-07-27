@@ -131,8 +131,6 @@ Example **package.json**
     "eslint-plugin-security": "1.4.0",
 ```
 
-
-
 ## JSCPD
 
 Find duplicated blocks.
