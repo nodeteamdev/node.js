@@ -3,6 +3,7 @@
 * [Installation](/pre/install.md "Installation")
 * [JavaScript Style Guide](/code/index.md "JavaScript Style Guide")
 * [Сode analysis](/code/analysis.md "Code analysis")
+* [Basic Security](/security/index.md)
 * [Level UP](/level/index.md)
     * [Junior](/level/junior/core.md)
         - [hello](/level/junior/article/hello.md)
