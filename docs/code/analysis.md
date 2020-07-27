@@ -92,6 +92,46 @@ Would you like to install them now with npm?
 ❯ Y
 ```
 
+Example **.eslint.json**
+
+```json
+  {
+      "env": {
+          "es2020": true,
+          "node": true,
+      },
+      "extends": [
+          "airbnb-base"
+      ],
+      "parser": "@typescript-eslint/parser",
+      "parserOptions": {
+          "ecmaVersion": 11,
+          "sourceType": "module"
+      },
+      "plugins": [
+          "@typescript-eslint"
+      ],
+      "rules": {
+          "max-len": [
+              "error",
+              120
+          ]
+      }
+  }
+```
+
+Example **package.json**
+
+```package.json
+    "@typescript-eslint/eslint-plugin": "3.7.0",
+    "@typescript-eslint/parser": "3.7.0",
+    "eslint": "7.5.0",
+    "eslint-config-airbnb-base": "14.2.0",
+    "eslint-plugin-import": "2.22.0",
+    "eslint-plugin-security": "1.4.0",
+```
+
+
 
 ## JSCPD
 
