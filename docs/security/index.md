@@ -2,13 +2,15 @@
 
 ## Injection
 
-### Server Side JS Injection
+### 1. Server Side JS Injection
 
 When `eval()`, `setTimeout()`, `setInterval()`, `Function()` are used to process user provided inputs, it can be exploited by an attacker to inject and execute malicious JavaScript code on server.
 
 Web applications using the JavaScript `eval()` function to parse the incoming data without any type of input validation are vulnerable to this attack. An attacker can inject arbitrary JavaScript code to be executed on the server. Similarly `setTimeout()`, and `setInterval()` functions can take code in string format as a first argument causing same issues as `eval()`.
 
 This vulnerability can be very critical and damaging by allowing attacker to send various types of commands.
+
+[![Injection DoS](https://img.youtube.com/vi/krOx9QWwcYw/0.jpg)](https://www.youtube.com/watch?v=krOx9QWwcYw "Injection DoS")
 
 An effective denial-of-service attack can be executed simply by sending the commands below to `eval()` function:
 
@@ -23,6 +25,7 @@ An alternative DoS attack would be to simply exit or kill the running process:
 ```javascript
 process.exit() or process.kill(process.pid)
 ```
+[![](http://img.youtube.com/vi/Mr-Jh9bjSLo/0.jpg)](http://www.youtube.com/watch?v=Mr-Jh9bjSLo "")
 
 Another potential goal of an attacker might be to read the contents of files from the server. For example, following two commands list the contents of the current directory and parent directory respectively:
 
@@ -72,7 +75,7 @@ This makes application vulnerable to SSJS attack. It can fixed simply by using `
 
 In addition, all functions begin with use strictpragma.
 
-### SQL and NoSQL Injection
+### 2. SQL and NoSQL Injection
 
 SQL and NoSQL injections enable an attacker to inject code into the query that would be executed by the database. These flaws are introduced when software developers create dynamic database queries that include user supplied input.
 
@@ -151,7 +154,7 @@ You can also just drop the following into the Stocks Threshold input box:
 - Input Validation: Validate inputs to detect malicious values. For NoSQL databases, also validate input types against expected types
 - Least Privilege: To minimize the potential damage of a successful injection attack, do not assign DBA or admin type access rights to your application accounts. Similarly minimize the privileges of the operating system account that the database process runs under.
 
-### Log Injection
+### 3. Log Injection
 
 Log injection vulnerabilities enable an attacker to forge and tamper with an application's logs.
 
@@ -228,6 +231,110 @@ Session management related security issues can be prevented by taking these meas
 - Session IDs should be recreated after successful login.
 - Passwords, session IDs, and other credentials should not be sent over unencrypted connections.
 
+**Source Code Examples**
+
+***1. Protecting user credentials***
+
+`addUser()` method:
+
+```javascript
+// Create user document
+var user = {
+    userName: userName,
+    firstName: firstName,
+    lastName: lastName,
+    password: password //received from request param
+};
+```
+
+To secure it, handle password storage in a safer way by using one way encryption using salt hashing as below:
+
+```javascript
+// Generate password hash
+var salt = bcrypt.genSaltSync();
+var passwordHash = bcrypt.hashSync(password, salt);
+
+// Create user document
+var user = {
+    userName: userName,
+    firstName: firstName,
+    lastName: lastName,
+    password: passwordHash
+};
+```
+
+This hash password can not be decrypted, hence more secure. To compare the password when user logs in, the user entered password gets converted to hash and compared with the hash in storage.
+
+```javascript
+if (bcrypt.compareSync(password, user.password)) {
+    callback(null, user);
+} else {
+    callback(invalidPasswordError, null);
+}
+```
+
+Note: The bcrypt module also provides asynchronous methods for creating and comparing hash.
+
+***2. Session timeout and protecting cookies in transit***
+
+The insecure demo application does not contain any provision to timeout user session. The session stays active until user explicitly logs out.
+
+In addition to that, the app does not prevent cookies being accessed in script, making application vulnerable to Cross Site Scripting (XSS) attacks. Also cookies are not prevented to get sent on insecure HTTP connection.
+
+To secure the application:
+
+1. Use session based timeouts, terminate session when browser closes
+
+```javascript
+// Enable session management using express middleware
+app.use(express.cookieParser());
+```
+
+2. In addition, sets `HTTPOnly` HTTP header preventing cookies being accessed by scripts. The application used HTTPS secure connections, and cookies are configured to be sent only on Secure HTTPS connections by setting `Secure` flag.
+
+```javascript
+app.use(express.session({
+    secret: "s3Cur3",
+    cookie: {
+        httpOnly: true,
+        secure: true
+    }
+}))
+```
+3. When user clicks logout, destroy the session and session cookie
+
+```javascript
+req.session.destroy(function() {
+    res.redirect("/");
+});
+```
+
+Note: The example code uses `MemoryStore` to manage session data, which is not designed for production environment, as it will leak memory, and will not scale past a single process. Use database based storage MongoStore or RedisStore for production. Alternatively, sessions can be managed using popular passport module.
+
+***3. Session hijacking***
+
+The insecure demo application does not regenerate a new session id upon user's login, therefore rendering a vulnerability of session hijacking if an attacker is able to somehow steal the cookie with the session id and use it.
+
+Upon login, a security best practice with regards to cookies session management would be to regenerate the session id so that if an id was already created for a user on an insecure medium (i.e: non-HTTPS website or otherwise), or if an attacker was able to get their hands on the cookie id before the user logged-in, then the old session id will render useless as the logged-in user with new privileges holds a new session id now.
+
+To secure the application:
+
+1. Re-generate a new session id upon login (and best practice is to keep regenerating them upon requests or at least upon sensitive actions like a user's password reset. Re-generate a session id as follows: By wrapping the below code as a function callback for the method req.session.regenerate()
+
+```javascript
+req.session.regenerate(function() {
+
+  req.session.userId = user._id;
+
+  if (user.isAdmin) {
+    return res.redirect("/benefits");
+  } else {
+    return res.redirect("/dashboard");
+  }
+
+})
+```
+
 ### 2 Password Guessing Attacks
 
 Implementing a robust minimum password criteria (minimum length and complexity) can make it difficult for attacker to guess password.
@@ -283,6 +390,8 @@ Content-Security-Policy: default-src 'self' *.mydomain.com
 
 - Apply encoding on both client and server side: It is essential to apply encoding on both client and server side to mitigate DOM based XSS attack, in which untrusted data never leaves the browser.
 
+[![](http://img.youtube.com/vi/KvZ5jdg083M/0.jpg)](http://www.youtube.com/watch?v=KvZ5jdg083M "")
+
 ## Insecure Direct Object References
 
 A direct object reference occurs when a developer exposes a reference to an internal implementation object, such as a file, directory, or database key. Without an access control check or other protection, attackers can manipulate these references to access unauthorized data.
@@ -292,6 +401,8 @@ A direct object reference occurs when a developer exposes a reference to an inte
 If an applications uses the actual name or key of an object when generating web pages, and doesn't verify if the user is authorized for the target object, this can result in an insecure direct object reference flaw. An attacker can exploit such flaws by manipulating parameter values. Unless object references are unpredictable, it is easy for an attacker to access all available data of that type.
 
 For example, the insure demo application uses userid as part of the url to access the allocations (/allocations/{id}). An attacker can manipulate id value and access other user's allocation information.
+
+[![](http://img.youtube.com/vi/KFTRMw5F_eg/0.jpg)](http://www.youtube.com/watch?v=KFTRMw5F_eg "")
 
 **How Do I Prevent It?**
 
@@ -329,6 +440,8 @@ Here are some node.js and express specific configuration measures:
 - Vet npm packages used by the application
 - Lock versions of all npm packages used, for example using [shrinkwarp](https://docs.npmjs.com/cli/shrinkwrap), to have full control over when to install a new version of the package.
 - Set security specific HTTP headers
+
+[![](http://img.youtube.com/vi/lCpnVrD2Neg/0.jpg)](http://www.youtube.com/watch?v=lCpnVrD2Neg "")
 
 ## Sensitive Data Exposure
 
@@ -412,3 +525,189 @@ user.dob = encrypt(dob);
 user.ssn = decrypt(user.ssn);
 user.dob = decrypt(user.dob);
 ```
+
+
+## Missing Function Level Access Control
+
+Most web applications verify function level access rights before making that functionality visible in the UI. However, applications need to perform the same access control checks on the server when each function is accessed.
+
+If requests are not verified for access rights on server, attackers can forge requests in order to access functionality without proper authorization.
+
+[![](http://img.youtube.com/vi/ej6NCVd1Fo4/0.jpg)](http://www.youtube.com/watch?v=ej6NCVd1Fo4 "")
+
+In the insecure demo application, this vulnerability exists in benefits module, which allows changing benefit start date for employees. The link to the benefits module is visible only to the admin user (user: admin, password: Admin_123). However, an attacker can access this module simply by logging in as any non-admin user and accessing benefits url directly.
+
+**How Do I Prevent It?**
+
+Most web applications don’t display links and buttons to unauthorized functions, but this “presentation layer access control” doesn't actually provide protection. You must also implement checks in the controller or business logic.
+
+***Source Code Examples***
+
+In vulnerable application, there is no authorization check for benefits related routes `routes/index.js`
+
+```javascript
+// Benefits Page
+app.get("/benefits", isLoggedIn, benefitsHandler.displayBenefits);
+app.post("/benefits", isLoggedIn, benefitsHandler.updateBenefits);
+```
+
+This can be fixed by adding a middleware to verify user's role:
+
+```javascript
+// Benefits Page
+app.get("/benefits", isLoggedIn, isAdmin, benefitsHandler.displayBenefits);
+app.post("/benefits", isLoggedIn, isAdmin, benefitsHandler.updateBenefits);
+```
+
+To implement isAdminmiddleware, check if isAdmin flag is set for the logged in user in database.
+For example, here is middleware function that can be added to `routes\session.js`
+
+```javascript
+this.isAdminUserMiddleware = function(req, res, next) {
+    if (req.session.userId) {
+        userDAO.getUserById(req.session.userId, function(err, user) {
+             if(user && user.isAdmin) {
+                 next();
+             } else {
+                 return res.redirect("/login");
+             }
+        });
+    } else {
+        console.log("redirecting to login");
+        return res.redirect("/login");
+    }
+};
+```
+
+It can be then made available in `routes/index.js` router as:
+
+```javascript
+var SessionHandler = require("./session");
+//Middleware to check if user has admin rights
+var isAdmin = sessionHandler.isAdminUserMiddleware;
+```
+
+## CSRF
+
+A CSRF attack forces a logged-on victim’s browser to send a forged HTTP request, including the victim’s session cookie and any other automatically included authentication information, to a vulnerable web application. This allows the attacker to force the victim’s browser to generate requests that the vulnerable application processes as legitimate requests from the victim.
+
+As browsers automatically send credentials like session cookies with HTTP requests to the server where cookies were received from, attackers can create malicious web pages which generate forged requests that are indistinguishable from legitimate ones.
+
+For example, CSRF vulnerability can be exploited on profile form on the insecure demo application.
+
+[![](http://img.youtube.com/vi/vRDykS_2y3I/0.jpg)](http://www.youtube.com/watch?v=vRDykS_2y3I "")
+
+To exploit it:
+
+1. An attacker would need to host a forged form like below on a malicious sever
+
+```html
+    <html lang="en">
+    <head></head>
+    	<body>
+    		<form method="POST" action="http://TARGET_APP_URL_HERE/profile">
+    			<h1> You are about to win a brand new iPhone!</h1>
+    			<h2> Click on the win button to claim it...</h2>
+    			<input type="hidden" name="bankAcc" value="9999999"/>
+    			<input type="hidden" name="bankRouting" value="88888888"/>
+                                <input type="submit" value="Win !!!"/>
+    		</form>
+    	</body>
+    </html>
+```
+
+2. Next, attacker would need to manage opening the form on logged in victim's browser and attract user to submit it. When user submits this form, it results in victim user's browser sending a malicious request to vulnerable server, causing CSRF attack.
+
+**How Do I Prevent It?**
+
+- Express csrf middleware provides a very effective way to deal with csrf attack. By default this middleware generates a token named "_csrf" which should be added to requests which mutate state (PUT, POST, DELETE), within a hidden form field, or query-string, or header fields.
+
+- If using method-override middleware, it is very important that it is used before any middleware that needs to know the method of the request, including CSRF middleware. Otherwise an attacker can use non-state mutating methods (such as GET) to bypass the CSRF middleware checks, and use method override header to convert request to desired method.
+
+- When form is submitted, the middleware checks for existence of token and validates it by matching to the generated token for the response-request pair. If tokens do not match, it rejects the request. Thus making it really hard for an attacker to exploit CSRF.
+
+***Source Code Example***
+
+The `server.js` includes the express CSRF middleware after session is initialized. Then creates a custom middleware to generate new token using `req.csrfToken();` and exposes it to view by setting it in `res.locals`
+
+```javascript
+    //Enable Express csrf protection
+    app.use(express.csrf());
+
+    app.use(function(req, res, next) {
+        res.locals.csrftoken = req.csrfToken();
+        next();
+    });
+```
+
+Next, this token can be included in a hidden form field in `views/profile.html` as below.
+
+```html
+<input type="hidden" name="_csrf" value="{{ csrftoken } }">
+```
+
+## Using Components with Known Vulnerabilities
+
+Components, such as libraries, frameworks, and other software modules, almost always run with full privileges. If a vulnerable component is exploited, such an attack can facilitate serious data loss or server takeover. Applications using components with known vulnerabilities may undermine application defenses and enable a range of possible attacks and impacts.
+
+Using insecure npm packages can lead to this vulnerability. Some projects today help test and alert on insecure dependencies:
+
+1. The [Node Security project](https://www.npmjs.com/advisories) is a great initiative and resource to know about related vulnerabilities.
+2. [Snyk.io](https://snyk.io/) is another Node.js CLI tool and Platform to scan and detect vulnerable packages
+3. [npm-check](https://www.npmjs.com/package/npm-check) Check for outdated, incorrect, and unused dependencies.
+4. [David DM](https://david-dm.org/) gets you an overview of your project dependencies, the version you use and the latest available, so you can quickly see what's drifting
+5. [npm outdated](https://docs.npmjs.com/cli-commands/outdated.html) as well as 'yarn outdated' are both command line ways to show possibly out of date dependencies
+
+The npm packages are essential part of our node application. These packages could either accidentally or maliciously contain insecure code. Through insecure packages an attacker can:
+- Create and run scripts at different stages during installation or usage of the package.
+- Read, write, update, delete files on system
+- Write and execute binary files
+- Collect sensitive data send it remotely
+
+**How Do I Prevent It?**
+
+These are few measures we can take to protect against malicious npm packages
+- Do not run application with root privileges
+- Prefer packages that include static code analysis. Check JSHint/JSLint the configuration to know what rules code abide by
+- Prefer packages that contain comprehensive unit tests and review tests for the functions our application uses
+- Review code for any unexpected file or database access
+- Research about how popular the package is, what other packages use it, if any other packages are written by the author, etc
+- Lock version of packages used
+- Watch Github repositories for notifications. This will inform us if any vulnerabilities are discovered in the package in future
+
+
+## Unvalidated Redirects and Forwards
+
+Web applications frequently redirect and forward users to other pages and websites, and use untrusted data to determine the destination pages. Without proper validation, attackers can redirect victims to phishing or malware sites, or use forwards to access unauthorized pages.
+
+An attacker can use unvalidated redirected links as a medium to redirect user to malicious contents and tricks victims into clicking it. Attacker can exploit it to bypass security checks and make it believe trustworthy.
+
+For example, the "Learning Resources" link `( /learn?url=...)` in the application redirects to another website without validating the url.
+
+[![](http://img.youtube.com/vi/z98AQF8J_zg/0.jpg)](http://www.youtube.com/watch?v=z98AQF8J_zg "")
+
+Here is code from `routes/index.js`,
+
+```javascript
+    // Handle redirect for learning resources link
+    app.get("/learn", function (req, res, next) {
+        return res.redirect(req.query.url);
+    });
+```
+
+An attacker can change the `url` query parameter to point to malicious website and share it. Victims are more likely to click on it, as the initial part of the link (before query parameters) points to a trusted site.
+
+**How Do I Prevent It?**
+
+Safe use of redirects and forwards can be done in a number of ways:
+
+- Simply avoid using redirects and forwards.
+- If used, don’t involve user parameters in calculating the destination. This can usually be done.
+- If destination parameters can’t be avoided, ensure that the supplied value is valid, and authorized for the user.
+It is recommended that any such destination parameters be a mapping value, rather than the actual URL or portion of the URL, and that server side code translate this mapping to the target URL.
+
+## OWASP
+
+The OWASP Top 10 is a standard awareness document for developers and web application security. It represents a broad consensus about the most critical security risks to web applications.
+
+[OWASP Top 10](https://owasp.org/www-project-top-ten/)
